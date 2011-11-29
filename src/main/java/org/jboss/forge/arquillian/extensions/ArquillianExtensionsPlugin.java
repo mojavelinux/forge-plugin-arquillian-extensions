@@ -70,19 +70,7 @@ public class ArquillianExtensionsPlugin implements Plugin {
     public static final String ARCHIVE_TYPE = "org.jboss.shrinkwrap.api.Archive";
     public static final String SHRINKWRAP_TYPE = "org.jboss.shrinkwrap.api.ShrinkWrap";
     public static final String JAVA_ARCHIVE_TYPE = "org.jboss.shrinkwrap.api.spec.JavaArchive";
-    
-    public static final String LOADABLE_EXTENSION = toSimpleName(LOADABLE_EXTENSION_TYPE);
-    public static final String REMOTE_LOADABLE_EXTENSION = toSimpleName(REMOTE_LOADABLE_EXTENSION_TYPE);
-    public static final String EXTENSION_BUILDER = "ExtensionBuilder";
-    public static final String TEST_ENRICHER = toSimpleName(TEST_ENRICHER_TYPE);
-    public static final String OBSERVES = toSimpleName(OBSERVES_TYPE);
-    public static final String AUXILIARY_ARCHIVE_APPENDER = toSimpleName(AUXILIARY_ARCHIVE_APPENDER_TYPE);
-    public static final String DEPLOYMENT_SCENARIO_GENERATOR = toSimpleName(DEPLOYMENT_SCENARIO_GENERATOR_TYPE);
-    public static final String DEPLOYMENT_DESCRIPTION = toSimpleName(DEPLOYMENT_DESCRIPTION_TYPE);
-    public static final String TEST_CLASS = toSimpleName(TEST_CLASS_TYPE);
-    public static final String ARCHIVE = toSimpleName(ARCHIVE_TYPE);
-    public static final String SHRINKWRAP = toSimpleName(SHRINKWRAP_TYPE);
-    public static final String JAVA_ARCHIVE = toSimpleName(JAVA_ARCHIVE_TYPE);
+    public static final String EXTENSION_BUILDER_TYPE = "ExtensionBuilder";
 
     private static final String REGISTER_METHOD_NAME = "register";
     private static final String RESOLVE_METHOD_NAME = "resolve";
@@ -128,13 +116,13 @@ public class ArquillianExtensionsPlugin implements Plugin {
         if (!extensionSource.exists()) {
             if (extensionSource.createNewFile()) {
                 extensionClass.addImport(LOADABLE_EXTENSION_TYPE);
-                extensionClass.addInterface(LOADABLE_EXTENSION);
+                extensionClass.addInterface(toSimpleName(LOADABLE_EXTENSION_TYPE));
                 Method<JavaClass> registerMethod = extensionClass.addMethod()
                         .setPublic()
                         .setReturnTypeVoid()
                         .setName(REGISTER_METHOD_NAME);
                 registerMethod.addAnnotation(Override.class);
-                registerMethod.setParameters(EXTENSION_BUILDER + " builder");
+                registerMethod.setParameters(EXTENSION_BUILDER_TYPE + " builder");
                 registerMethod.setBody("/** register extension implementations here **/");
                 
                 if ("remote".equals(type)) {
@@ -145,13 +133,13 @@ public class ArquillianExtensionsPlugin implements Plugin {
                     // TODO handle failure scenario
                     if (!remoteExtensionSource.exists() && remoteExtensionSource.createNewFile()) {
                         remoteExtensionClass.addImport(REMOTE_LOADABLE_EXTENSION_TYPE);
-                        remoteExtensionClass.addInterface(REMOTE_LOADABLE_EXTENSION);
+                        remoteExtensionClass.addInterface(toSimpleName(REMOTE_LOADABLE_EXTENSION_TYPE));
                         Method<JavaClass> remoteRegisterMethod = remoteExtensionClass.addMethod()
                                 .setPublic()
                                 .setReturnTypeVoid()
                                 .setName(REGISTER_METHOD_NAME);
                         remoteRegisterMethod.addAnnotation(Override.class);
-                        remoteRegisterMethod.setParameters(EXTENSION_BUILDER + " builder");
+                        remoteRegisterMethod.setParameters(EXTENSION_BUILDER_TYPE + " builder");
                         remoteRegisterMethod.setBody("");
                         remoteExtensionSource.setContents(remoteExtensionClass);
                         
@@ -168,22 +156,26 @@ public class ArquillianExtensionsPlugin implements Plugin {
                         remoteExtensionAppenderClass.addImport(ARCHIVE_TYPE);
                         remoteExtensionAppenderClass.addImport(JAVA_ARCHIVE_TYPE);
                         //remoteExtensionAppender.addImport(remoteExtensionClass.getQualifiedName());
-                        remoteExtensionAppenderClass.addInterface(AUXILIARY_ARCHIVE_APPENDER);
+                        remoteExtensionAppenderClass.addInterface(toSimpleName(AUXILIARY_ARCHIVE_APPENDER_TYPE));
                         Method<JavaClass> createArchiveMethod = remoteExtensionAppenderClass.addMethod()
                                 .setPublic()
-                                .setReturnType(ARCHIVE + "<?>")
+                                .setReturnType(toSimpleName(ARCHIVE_TYPE) + "<?>")
                                 .setName("createAuxiliaryArchive");
                         createArchiveMethod.addAnnotation(Override.class);
                         String archiveName = "arquillian-extension-" + extensionName.toLowerCase().replace("extension", "") + ".jar";
                         createArchiveMethod.setBody(
                                 "return ShrinkWrap.create(JavaArchive.class, \"" + archiveName + "\")\n" +
                                 "    .addClass(" + toClassRef(remoteExtensionClass.getName()) + ")\n" +
-                                "    .addAsServiceProvider(" + toClassRef(REMOTE_LOADABLE_EXTENSION) + ", " + toClassRef(remoteExtensionClass.getName()) + ");");
+                                "    .addAsServiceProvider(" +
+                                toClassRef(toSimpleName(REMOTE_LOADABLE_EXTENSION_TYPE)) + ", " +
+                                toClassRef(remoteExtensionClass.getName()) + ");");
                         
                         remoteExtensionAppenderSource.setContents(remoteExtensionAppenderClass);
                         
                         extensionClass.addImport(AUXILIARY_ARCHIVE_APPENDER_TYPE);
-                        registerMethod.setBody("builder.service(" + toClassRef(AUXILIARY_ARCHIVE_APPENDER) + ", " + toClassRef(remoteExtensionAppenderClass.getName()) + ");");
+                        registerMethod.setBody("builder.service(" +
+                                toClassRef(toSimpleName(AUXILIARY_ARCHIVE_APPENDER_TYPE)) + ", " +
+                                toClassRef(remoteExtensionAppenderClass.getName()) + ");");
                     }
                 }
                 else {
@@ -221,7 +213,7 @@ public class ArquillianExtensionsPlugin implements Plugin {
         if (!javaResource.exists()) {
             if (javaResource.createNewFile()) {
                 javaClass.addImport(TEST_ENRICHER_TYPE);
-                javaClass.addInterface(TEST_ENRICHER);
+                javaClass.addInterface(toSimpleName(TEST_ENRICHER_TYPE));
                 Method<JavaClass> enrichMethod = javaClass.addMethod()
                         .setPublic()
                         .setReturnTypeVoid()
@@ -252,10 +244,12 @@ public class ArquillianExtensionsPlugin implements Plugin {
                     if (!javaClass.getPackage().equals(extensionClass.getPackage())) {
                         extensionClass.addImport(javaClass.getQualifiedName());
                     }
-                    Method<JavaClass> registerMethod = extensionClass.getMethod(REGISTER_METHOD_NAME, EXTENSION_BUILDER);
+                    Method<JavaClass> registerMethod = extensionClass.getMethod(REGISTER_METHOD_NAME, EXTENSION_BUILDER_TYPE);
                     String builderName = registerMethod.getParameters().get(0).getName();
                     registerMethod.setBody(registerMethod.getBody() + "    " +
-                            builderName + ".service(" + toClassRef(TEST_ENRICHER) + ", " + toClassRef(javaClass.getName()) + ");\n    ");
+                            builderName + ".service(" +
+                            toClassRef(toSimpleName(TEST_ENRICHER_TYPE)) + ", " +
+                            toClassRef(javaClass.getName()) + ");\n    ");
                     extensionType.setContents(extensionClass);
                 }
             }
@@ -283,12 +277,12 @@ public class ArquillianExtensionsPlugin implements Plugin {
                 javaClass.addImport(DEPLOYMENT_SCENARIO_GENERATOR_TYPE);
                 javaClass.addImport(DEPLOYMENT_DESCRIPTION_TYPE);
                 javaClass.addImport(TEST_CLASS_TYPE);
-                javaClass.addInterface(DEPLOYMENT_SCENARIO_GENERATOR);
+                javaClass.addInterface(toSimpleName(DEPLOYMENT_SCENARIO_GENERATOR_TYPE));
                 Method<JavaClass> generateMethod = javaClass.addMethod()
                     .setPublic()
-                    .setReturnType("List<" + DEPLOYMENT_DESCRIPTION + ">")
+                    .setReturnType("List<" + toSimpleName(DEPLOYMENT_DESCRIPTION_TYPE) + ">")
                     .setName(GENERATE_METHOD_NAME);
-                generateMethod.setParameters(TEST_CLASS + " testClass");
+                generateMethod.setParameters(toSimpleName(TEST_CLASS_TYPE) + " testClass");
                 generateMethod.setBody("return Collections.emptyList();");
                 
                 javaResource.setContents(javaClass);
@@ -300,10 +294,12 @@ public class ArquillianExtensionsPlugin implements Plugin {
                     if (!javaClass.getPackage().equals(extensionClass.getPackage())) {
                         extensionClass.addImport(javaClass.getQualifiedName());
                     }
-                    Method<JavaClass> registerMethod = extensionClass.getMethod(REGISTER_METHOD_NAME, EXTENSION_BUILDER);
+                    Method<JavaClass> registerMethod = extensionClass.getMethod(REGISTER_METHOD_NAME, EXTENSION_BUILDER_TYPE);
                     String builderName = registerMethod.getParameters().get(0).getName();
                     registerMethod.setBody(registerMethod.getBody() + "    " +
-                            builderName + ".service(" + toClassRef(DEPLOYMENT_SCENARIO_GENERATOR) + ", " + toClassRef(javaClass.getName()) + ");\n    ");
+                            builderName + ".service(" +
+                            toClassRef(toSimpleName(DEPLOYMENT_SCENARIO_GENERATOR_TYPE)) + ", " +
+                            toClassRef(javaClass.getName()) + ");\n    ");
                     extensionType.setContents(extensionClass);
                 }
             }
@@ -348,7 +344,7 @@ public class ArquillianExtensionsPlugin implements Plugin {
                     if (!javaClass.getPackage().equals(extensionClass.getPackage())) {
                         extensionClass.addImport(javaClass.getQualifiedName());
                     }
-                    Method<JavaClass> registerMethod = extensionClass.getMethod(REGISTER_METHOD_NAME, EXTENSION_BUILDER);
+                    Method<JavaClass> registerMethod = extensionClass.getMethod(REGISTER_METHOD_NAME, EXTENSION_BUILDER_TYPE);
                     String builderName = registerMethod.getParameters().get(0).getName();
                     registerMethod.setBody(registerMethod.getBody() + "    " +
                             builderName + ".observer(" + toClassRef(javaClass.getName()) + ");\n    ");
