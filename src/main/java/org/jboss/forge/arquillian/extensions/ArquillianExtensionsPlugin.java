@@ -19,6 +19,8 @@ package org.jboss.forge.arquillian.extensions;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
@@ -48,6 +50,8 @@ import org.jboss.forge.shell.plugins.Topic;
 
 /**
  * @author <a href="http://community.jboss.org/people/dan.j.allen">Dan Allen</a>
+ * 
+ * TODO extract common logic for updating register method
  */
 @Topic("Arquillian")
 @Alias("arquillian-extensions")
@@ -60,6 +64,9 @@ public class ArquillianExtensionsPlugin implements Plugin {
     public static final String TEST_ENRICHER_TYPE = "org.jboss.arquillian.test.spi.TestEnricher";
     public static final String OBSERVES_TYPE = "org.jboss.arquillian.core.api.annotation.Observes";
     public static final String AUXILIARY_ARCHIVE_APPENDER_TYPE = "org.jboss.arquillian.container.test.spi.client.deployment.AuxiliaryArchiveAppender";
+    public static final String DEPLOYMENT_SCENARIO_GENERATOR_TYPE = "org.jboss.arquillian.container.test.spi.client.deployment.DeploymentScenarioGenerator";
+    public static final String DEPLOYMENT_DESCRIPTION_TYPE = "org.jboss.arquillian.container.spi.client.deployment.DeploymentDescription";
+    public static final String TEST_CLASS_TYPE = "org.jboss.arquillian.test.spi.TestClass";
     public static final String ARCHIVE_TYPE = "org.jboss.shrinkwrap.api.Archive";
     public static final String SHRINKWRAP_TYPE = "org.jboss.shrinkwrap.api.ShrinkWrap";
     public static final String JAVA_ARCHIVE_TYPE = "org.jboss.shrinkwrap.api.spec.JavaArchive";
@@ -70,6 +77,9 @@ public class ArquillianExtensionsPlugin implements Plugin {
     public static final String TEST_ENRICHER = toSimpleName(TEST_ENRICHER_TYPE);
     public static final String OBSERVES = toSimpleName(OBSERVES_TYPE);
     public static final String AUXILIARY_ARCHIVE_APPENDER = toSimpleName(AUXILIARY_ARCHIVE_APPENDER_TYPE);
+    public static final String DEPLOYMENT_SCENARIO_GENERATOR = toSimpleName(DEPLOYMENT_SCENARIO_GENERATOR_TYPE);
+    public static final String DEPLOYMENT_DESCRIPTION = toSimpleName(DEPLOYMENT_DESCRIPTION_TYPE);
+    public static final String TEST_CLASS = toSimpleName(TEST_CLASS_TYPE);
     public static final String ARCHIVE = toSimpleName(ARCHIVE_TYPE);
     public static final String SHRINKWRAP = toSimpleName(SHRINKWRAP_TYPE);
     public static final String JAVA_ARCHIVE = toSimpleName(JAVA_ARCHIVE_TYPE);
@@ -77,6 +87,7 @@ public class ArquillianExtensionsPlugin implements Plugin {
     private static final String REGISTER_METHOD_NAME = "register";
     private static final String RESOLVE_METHOD_NAME = "resolve";
     private static final String ENRICH_METHOD_NAME = "enrich";
+    private static final String GENERATE_METHOD_NAME = "generate";
     
     public static final String SERVICE_PROVIDER_TYPE = LOADABLE_EXTENSION_TYPE;
     public static final String SERVICE_PROVIDER_RESOURCE = "META-INF/services/" + SERVICE_PROVIDER_TYPE;
@@ -245,6 +256,54 @@ public class ArquillianExtensionsPlugin implements Plugin {
                     String builderName = registerMethod.getParameters().get(0).getName();
                     registerMethod.setBody(registerMethod.getBody() + "    " +
                             builderName + ".service(" + toClassRef(TEST_ENRICHER) + ", " + toClassRef(javaClass.getName()) + ");\n    ");
+                    extensionType.setContents(extensionClass);
+                }
+            }
+        }
+        else {
+            shell.println(ShellColor.YELLOW, "Java source file already exists [" + javaClass.getQualifiedName() + "]");
+        }
+    }
+    
+    @Command(value = "new-deployment-scenario-generator")
+    public void newDeploymentGenerator(
+            @Option(required = true, name = "named") final String observerName,
+            @Option(required = false, name = "package") final String observerPackage,
+            @Option(required = false, name = "forExtension", completer = ClientLoadableExtensionCompleter.class) final JavaResource extensionType)
+            throws FileNotFoundException {
+        JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
+        JavaClass javaClass = JavaParser.create(JavaClass.class);
+        javaClass.setName(observerName);
+        javaClass.setPackage(selectPackage("deployment generator", observerPackage, java.getBasePackage()));
+        JavaResource javaResource = java.getJavaResource(javaClass);
+        if (!javaResource.exists()) {
+            if (javaResource.createNewFile()) {
+                javaClass.addImport(Collections.class);
+                javaClass.addImport(List.class);
+                javaClass.addImport(DEPLOYMENT_SCENARIO_GENERATOR_TYPE);
+                javaClass.addImport(DEPLOYMENT_DESCRIPTION_TYPE);
+                javaClass.addImport(TEST_CLASS_TYPE);
+                javaClass.addInterface(DEPLOYMENT_SCENARIO_GENERATOR);
+                Method<JavaClass> generateMethod = javaClass.addMethod()
+                    .setPublic()
+                    .setReturnType("List<" + DEPLOYMENT_DESCRIPTION + ">")
+                    .setName(GENERATE_METHOD_NAME);
+                generateMethod.setParameters(TEST_CLASS + " testClass");
+                generateMethod.setBody("return Collections.emptyList();");
+                
+                javaResource.setContents(javaClass);
+                pickup.fire(new PickupResource(javaResource));
+                // TODO print warning if doesn't exist or implement loadable extension
+                if (extensionType.exists() && isLoadableExtension(extensionType.getJavaSource())) {
+                    JavaClass extensionClass = (JavaClass) extensionType.getJavaSource();
+                    extensionClass.addImport(DEPLOYMENT_SCENARIO_GENERATOR_TYPE);
+                    if (!javaClass.getPackage().equals(extensionClass.getPackage())) {
+                        extensionClass.addImport(javaClass.getQualifiedName());
+                    }
+                    Method<JavaClass> registerMethod = extensionClass.getMethod(REGISTER_METHOD_NAME, EXTENSION_BUILDER);
+                    String builderName = registerMethod.getParameters().get(0).getName();
+                    registerMethod.setBody(registerMethod.getBody() + "    " +
+                            builderName + ".service(" + toClassRef(DEPLOYMENT_SCENARIO_GENERATOR) + ", " + toClassRef(javaClass.getName()) + ");\n    ");
                     extensionType.setContents(extensionClass);
                 }
             }
