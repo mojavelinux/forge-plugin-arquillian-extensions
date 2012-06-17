@@ -1,0 +1,27 @@
+TODO:
+ * blog about it
+ * filter out SNAPSHOT options (unless they enable the flag useSnapshots)
+ * enum for client and remote types (currently using string w/ completer)
+ * only add dependencies as needed (for instance, container spis)
+ * use message template for defining method calls (easier to read)
+ * new-archive-appender (enum for selecting type)
+ * new-archive-processor (enum for selecting type)
+
+Forge enhancements:
+
+ * Validator for package name entry
+ * Validator for new class name entry
+ * Capitalize class name utility
+ * Service provider descriptor/registry parser (when a plugin needs to add entries to a META-INF/services file); put in shrinkwrap descriptors, perhaps?
+ * Get contents of resource file as string (having to read in a file slows down the plugin writer)
+ * ResourceFacet#hasResource() - simple locator
+ * JavaSourceFacet#hasJavaSource() - simple locator
+ * Utility for notifying that a file is in the way (plugins should be encouraged to behave consistently)
+ * Utility for notifying failure to create file (plugins should be encouraged to behave consistently)
+   ^ for these last two, some sort of framework for seeding a file, ensuring that it isn't clobbering a file, etc, would be massively helpful
+ * directory walker/scanner (sort of there w/ resource filter, but not recursive) - for when you need to collect resources or mine the project for information
+ * Java EE plugins should specify topic of @Topic("Java EE") and arquillian-plugin @Topic("Arquillian") - right now they are in "other"
+ * JavaParser should provide a method to "implement method from interface", which would give you a method definition w/ an empty body
+ * JavaParser should let you create method parameters one at a time (rather than as a string)
+ * JavaParser seems to strip comments that are put into a method body (I'm using comments like "// register extensions here")
+ * JavaSource should provide hasInterface()...awkward to have to check instanceof InterfaceCapable and then check hasInterface()
