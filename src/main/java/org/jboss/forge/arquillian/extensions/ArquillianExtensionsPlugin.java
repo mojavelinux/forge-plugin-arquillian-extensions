@@ -37,12 +37,13 @@ import org.jboss.forge.project.facets.events.InstallFacets;
 import org.jboss.forge.resources.java.JavaResource;
 import org.jboss.forge.shell.PromptType;
 import org.jboss.forge.shell.Shell;
-import org.jboss.forge.shell.ShellColor;
+import org.jboss.forge.shell.ShellMessages;
 import org.jboss.forge.shell.events.PickupResource;
 import org.jboss.forge.shell.plugins.Alias;
 import org.jboss.forge.shell.plugins.Command;
 import org.jboss.forge.shell.plugins.Help;
 import org.jboss.forge.shell.plugins.Option;
+import org.jboss.forge.shell.plugins.PipeOut;
 import org.jboss.forge.shell.plugins.Plugin;
 import org.jboss.forge.shell.plugins.RequiresFacet;
 import org.jboss.forge.shell.plugins.SetupCommand;
@@ -182,18 +183,18 @@ public class ArquillianExtensionsPlugin implements Plugin {
                 }
                 
                 extensionSource.setContents(extensionClass);
-                shell.println("Created loadable extension [" + extensionClass.getQualifiedName() + "]");
+                out.println("Created loadable extension [" + extensionClass.getQualifiedName() + "]");
     
                 registerExtension(extensionSource);
     
                 //pickup.fire(new PickupResource(extensionSource));
             }
             else {
-                shell.println(ShellColor.RED, "Could not write Java source file [" + extensionClass.getQualifiedName() + "]");
+                ShellMessages.error(out, "Could not write Java source file [" + extensionClass.getQualifiedName() + "]");
             }
         }
         else {
-            shell.println(ShellColor.YELLOW, "Java source file already exists [" + extensionClass.getQualifiedName() + "]");
+            ShellMessages.warn(out, "Java source file already exists [" + extensionClass.getQualifiedName() + "]");
         }
     }
     
@@ -255,7 +256,7 @@ public class ArquillianExtensionsPlugin implements Plugin {
             }
         }
         else {
-            shell.println(ShellColor.YELLOW, "Java source file already exists [" + javaClass.getQualifiedName() + "]");
+            ShellMessages.warn(out, "Java source file already exists [" + javaClass.getQualifiedName() + "]");
         }
     }
     
@@ -305,7 +306,7 @@ public class ArquillianExtensionsPlugin implements Plugin {
             }
         }
         else {
-            shell.println(ShellColor.YELLOW, "Java source file already exists [" + javaClass.getQualifiedName() + "]");
+            ShellMessages.warn(out, "Java source file already exists [" + javaClass.getQualifiedName() + "]");
         }
     }
     
@@ -353,7 +354,7 @@ public class ArquillianExtensionsPlugin implements Plugin {
             }
         }
         else {
-            shell.println(ShellColor.YELLOW, "Java source file already exists [" + javaClass.getQualifiedName() + "]");
+            ShellMessages.warn(out, "Java source file already exists [" + javaClass.getQualifiedName() + "]");
         }
     }
     
@@ -361,11 +362,11 @@ public class ArquillianExtensionsPlugin implements Plugin {
     public void listRegisteredExtensions() {
         try {
             for (String provider : getServiceProviderDescriptor().getServiceProviders()) {
-                shell.println(provider);
+                out.println(provider);
             }
         }
         catch (IOException e) {
-            shell.println(ShellColor.RED, "Could not read service provider configuration resource [" + SERVICE_PROVIDER_RESOURCE + "].");
+            ShellMessages.error(out, "Could not read service provider configuration resource [" + SERVICE_PROVIDER_RESOURCE + "].");
         }
     }
     
@@ -395,12 +396,12 @@ public class ArquillianExtensionsPlugin implements Plugin {
                 providerResource.save();
             }
             catch (IOException e) {
-                shell.println(ShellColor.RED, "Failed to register the specified extension [" + providerType + "]");
+                ShellMessages.error(out, "Failed to register the specified extension [" + providerType + "]");
             }
-            shell.println("Registered specified extension as service provider [" + providerType + "]");
+            out.println("Registered specified extension as service provider [" + providerType + "]");
         }
         else {
-            shell.println(ShellColor.RED, "Specified type is not a LoadableExtension [" + providerType + "]");
+            ShellMessages.error(out, "Specified type is not a LoadableExtension [" + providerType + "]");
         }
     }
     
@@ -429,12 +430,12 @@ public class ArquillianExtensionsPlugin implements Plugin {
                 providerResource.save();
             }
             catch (IOException e) {
-                shell.println(ShellColor.RED, "Failed to unregister the specified extension [" + providerType + "]");
+                ShellMessages.error(out, "Failed to unregister the specified extension [" + providerType + "]");
             }
-            shell.println("Unregistered specified extension as service provider [" + providerType + "]");
+            out.println("Unregistered specified extension as service provider [" + providerType + "]");
         }
         else {
-            shell.println(ShellColor.RED, "Specified type is not a LoadableExtension [" + providerType + "]");
+            ShellMessages.error(out, "Specified type is not a LoadableExtension [" + providerType + "]");
         }
     }
     
@@ -447,7 +448,7 @@ public class ArquillianExtensionsPlugin implements Plugin {
                 JavaSource<?> source = ext.getJavaSource();
                 String type = ((InterfaceCapable<?>) source).hasInterface(LOADABLE_EXTENSION_TYPE) ?
                         LOADABLE_EXTENSION_TYPE : REMOTE_LOADABLE_EXTENSION_TYPE;
-                shell.println(source.getQualifiedName() + " [" + type + "]");
+                out.println(source.getQualifiedName() + " [" + type + "]");
             } catch (FileNotFoundException e) {}
         }
     }
