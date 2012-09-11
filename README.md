@@ -12,7 +12,7 @@ First, start Forge.
 
 Then, use the forge git-source plugin to download, build and install the plugin into your Forge shell.
 
-    $> forge git-plugin git://github.com/mojavelinux/plugin-arquillian-extensions.git
+    $> forge git-plugin git://github.com/mojavelinux/forge-plugin-arquillian-extensions.git
 
 When the build is complete, the new arquillian-extensions command will be available in any Java project.
 
